@@ -3,225 +3,254 @@ from tkinter import ttk, messagebox
 import pyodbc
 from typing import Optional, Dict, List
 from ttkthemes import ThemedTk
+import customtkinter as ctk
+from PIL import Image, ImageTk
+import colorsys
 import json
 from datetime import datetime
 
-class ModernPeriodicTableGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Modern Periodic Table Information System")
-        self.root.geometry("1000x700")
+class PeriodicTableGUI:
+    def __init__(self):
+        """Initialize the main window with modern styling"""
+        # Set up customtkinter appearance
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
         
-        # Initialize database connection
+        # Create main window
+        self.root = ctk.CTk()
+        self.root.title("Modern Periodic Table")
+        self.root.geometry("1200x800")
+        
+        # Color scheme
+        self.colors = {
+            's': "#FF6B6B",  
+            'p': "#4ECDC4",  
+            'background': "#2F3542",
+            'text': "#FFFFFF",
+            'highlight': "#A3CB38"
+        }
+        
+        # Initialize database
         self.db = DatabaseManager()
         
-        # Configure styles
-        self.configure_styles()
+        # Create main interface
+        self.create_interface()
         
-        # Create main container
-        self.main_container = ttk.Frame(self.root, padding="10")
-        self.main_container.pack(fill="both", expand=True)
-        
-        # Create notebook for different views
-        self.create_notebook()
-        
-        # Initialize history
+        # Initialize search history
         self.search_history = []
-        
-    def configure_styles(self):
-        """Configure custom styles for widgets"""
-        style = ttk.Style()
-        
-        # Configure colors
-        style.configure("Title.TLabel", 
-                       font=("Helvetica", 24, "bold"),
-                       padding=10)
-        
-        style.configure("Subtitle.TLabel",
-                       font=("Helvetica", 12),
-                       padding=5)
-        
-        style.configure("Search.TFrame",
-                       padding=20)
-        
-        style.configure("Result.TFrame",
-                       padding=20)
-        
-        style.configure("History.TFrame",
-                       padding=20)
 
-    def create_notebook(self):
-        """Create notebook with different tabs"""
-        self.notebook = ttk.Notebook(self.main_container)
-        self.notebook.pack(fill="both", expand=True)
+    def create_interface(self):
+        """Create the main interface with modern styling"""
+        # Create main container
+        self.main_container = ctk.CTkFrame(self.root)
+        self.main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Create different tabs
-        self.create_search_tab()
-        self.create_periodic_table_tab()
-        self.create_history_tab()
-        self.create_statistics_tab()
+        # Create title
+        title = ctk.CTkLabel(
+            self.main_container,
+            text="Modern Periodic Table",
+            font=("Helvetica", 28, "bold")
+        )
+        title.pack(pady=20)
+        
+        # Create tabview
+        self.tabview = ctk.CTkTabview(self.main_container)
+        self.tabview.pack(fill="both", expand=True)
+        
+        # Add tabs
+        self.search_tab = self.tabview.add("Search")
+        self.table_tab = self.tabview.add("Periodic Table")
+        self.info_tab = self.tabview.add("Element Info")
+        self.history_tab = self.tabview.add("History")
+        
+        # Set up each tab
+        self.setup_search_tab()
+        self.setup_table_tab()
+        self.setup_info_tab()
+        self.setup_history_tab()
 
-    def create_search_tab(self):
-        """Create main search tab"""
-        search_frame = ttk.Frame(self.notebook, style="Search.TFrame")
-        self.notebook.add(search_frame, text="Search")
+    def setup_search_tab(self):
+        """Set up the search interface"""
+        # Search frame
+        search_frame = ctk.CTkFrame(self.search_tab)
+        search_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Title
-        title = ttk.Label(search_frame, 
-                         text="Periodic Table Search",
-                         style="Title.TLabel")
-        title.pack(fill="x", pady=10)
+        # Search by atomic number
+        number_frame = ctk.CTkFrame(search_frame)
+        number_frame.pack(fill="x", pady=10)
         
-        # Search options frame
-        search_options = ttk.LabelFrame(search_frame, text="Search Options", padding=10)
-        search_options.pack(fill="x", pady=5)
+        ctk.CTkLabel(
+            number_frame,
+            text="Atomic Number:",
+            font=("Helvetica", 14)
+        ).pack(side="left", padx=10)
         
-        # Grid for search options
-        # Atomic Number Search
-        ttk.Label(search_options, text="Atomic Number:").grid(row=0, column=0, padx=5, pady=5)
         self.atomic_number_var = tk.StringVar()
-        atomic_number_entry = ttk.Entry(search_options, textvariable=self.atomic_number_var)
-        atomic_number_entry.grid(row=0, column=1, padx=5, pady=5)
-        ttk.Button(search_options, 
-                   text="Search",
-                   command=self.search_by_number).grid(row=0, column=2, padx=5, pady=5)
+        number_entry = ctk.CTkEntry(
+            number_frame,
+            textvariable=self.atomic_number_var,
+            width=120
+        )
+        number_entry.pack(side="left", padx=10)
         
-        # Symbol Search
-        ttk.Label(search_options, text="Element Symbol:").grid(row=1, column=0, padx=5, pady=5)
+        ctk.CTkButton(
+            number_frame,
+            text="Search",
+            command=self.search_by_number,
+            font=("Helvetica", 12)
+        ).pack(side="left", padx=10)
+        
+        # Search by symbol
+        symbol_frame = ctk.CTkFrame(search_frame)
+        symbol_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(
+            symbol_frame,
+            text="Element Symbol:",
+            font=("Helvetica", 14)
+        ).pack(side="left", padx=10)
+        
         self.symbol_var = tk.StringVar()
-        symbol_entry = ttk.Entry(search_options, textvariable=self.symbol_var)
-        symbol_entry.grid(row=1, column=1, padx=5, pady=5)
-        ttk.Button(search_options,
-                   text="Search",
-                   command=self.search_by_symbol).grid(row=1, column=2, padx=5, pady=5)
+        symbol_entry = ctk.CTkEntry(
+            symbol_frame,
+            textvariable=self.symbol_var,
+            width=120
+        )
+        symbol_entry.pack(side="left", padx=10)
+        
+        ctk.CTkButton(
+            symbol_frame,
+            text="Search",
+            command=self.search_by_symbol,
+            font=("Helvetica", 12)
+        ).pack(side="left", padx=10)
+        
+        # Quick filters
+        filter_frame = ctk.CTkFrame(search_frame)
+        filter_frame.pack(fill="x", pady=20)
+        
+        ctk.CTkLabel(
+            filter_frame,
+            text="Quick Filters:",
+            font=("Helvetica", 16, "bold")
+        ).pack(pady=10)
+        
+        button_frame = ctk.CTkFrame(filter_frame)
+        button_frame.pack(fill="x")
+        
+        ctk.CTkButton(
+            button_frame,
+            text="S-Block Elements",
+            command=lambda: self.show_block_elements('s'),
+            fg_color=self.colors['s'],
+            font=("Helvetica", 12)
+        ).pack(side="left", padx=10)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="P-Block Elements",
+            command=lambda: self.show_block_elements('p'),
+            fg_color=self.colors['p'],
+            font=("Helvetica", 12)
+        ).pack(side="left", padx=10)
 
-        # Quick filter buttons
-        filter_frame = ttk.LabelFrame(search_frame, text="Quick Filters", padding=10)
-        filter_frame.pack(fill="x", pady=5)
+    def setup_table_tab(self):
+        """Set up the periodic table visualization"""
+        table_frame = ctk.CTkFrame(self.table_tab)
+        table_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        ttk.Button(filter_frame,
-                   text="S-Block Elements",
-                   command=lambda: self.show_block_elements('s')).pack(side="left", padx=5)
-        ttk.Button(filter_frame,
-                   text="P-Block Elements",
-                   command=lambda: self.show_block_elements('p')).pack(side="left", padx=5)
-        
-        # Results frame
-        self.results_frame = ttk.LabelFrame(search_frame, text="Element Details", padding=10)
-        self.results_frame.pack(fill="both", expand=True, pady=5)
-        
-        # Create labels for element details with better organization
-        self.create_detail_labels()
-
-    def create_periodic_table_tab(self):
-        """Create visual periodic table tab"""
-        table_frame = ttk.Frame(self.notebook)
-        self.notebook.add(table_frame, text="Periodic Table")
-        
-        # Create a grid of buttons for elements
+        # Grid for periodic table
         self.element_buttons = {}
-        
-        # Get all elements from database
         elements = self.db.get_all_elements()
         
-        # Create element buttons with appropriate positioning
         for element in elements:
-            btn = ttk.Button(table_frame,
-                            text=f"{element['symbol']}\n{element['atomic_number']}",
-                            command=lambda e=element: self.display_element(e))
+            # Element button with custom styling
+            btn = ctk.CTkButton(
+                table_frame,
+                text=f"{element['symbol']}\n{element['atomic_number']}",
+                command=lambda e=element: self.display_element(e),
+                width=80,
+                height=80,
+                fg_color=self.colors[element['block']],
+                font=("Helvetica", 14, "bold")
+            )
             
             # Position button based on period and group
             row = element['period'] - 1
-            col = element['group_number'] - 1
+            col = element['group_number'] - 1 if element['group_number'] else 0
             
             btn.grid(row=row, column=col, padx=2, pady=2, sticky="nsew")
             self.element_buttons[element['atomic_number']] = btn
 
-    def create_history_tab(self):
-        """Create search history tab"""
-        history_frame = ttk.Frame(self.notebook, style="History.TFrame")
-        self.notebook.add(history_frame, text="History")
+    def setup_info_tab(self):
+        """Set up the element information display"""
+        self.info_frame = ctk.CTkFrame(self.info_tab)
+        self.info_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Create treeview for history
-        columns = ("Time", "Search Type", "Query", "Result")
-        self.history_tree = ttk.Treeview(history_frame, columns=columns, show="headings")
-        
-        # Configure columns
-        for col in columns:
-            self.history_tree.heading(col, text=col)
-            self.history_tree.column(col, width=150)
-        
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(history_frame, orient="vertical", command=self.history_tree.yview)
-        self.history_tree.configure(yscrollcommand=scrollbar.set)
-        
-        # Pack widgets
-        self.history_tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        # Labels for element details
+        self.detail_labels = {}
+        self.create_detail_labels()
 
-    def create_statistics_tab(self):
-        """Create statistics and analysis tab"""
-        stats_frame = ttk.Frame(self.notebook)
-        self.notebook.add(stats_frame, text="Statistics")
+    def setup_history_tab(self):
+        """Set up the search history display"""
+        history_frame = ctk.CTkFrame(self.history_tab)
+        history_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Create statistics display
-        stats_text = tk.Text(stats_frame, wrap=tk.WORD, height=20, width=60)
-        stats_text.pack(fill="both", expand=True, padx=10, pady=10)
+        # Create history list
+        self.history_list = ctk.CTkTextbox(
+            history_frame,
+            font=("Helvetica", 12)
+        )
+        self.history_list.pack(fill="both", expand=True)
         
-        # Add some basic statistics
-        stats = self.db.get_statistics()
-        
-        stats_text.insert(tk.END, "Periodic Table Statistics\n\n")
-        stats_text.insert(tk.END, f"Total Elements: {stats['total_elements']}\n")
-        stats_text.insert(tk.END, f"S-Block Elements: {stats['s_block_count']}\n")
-        stats_text.insert(tk.END, f"P-Block Elements: {stats['p_block_count']}\n")
-        stats_text.insert(tk.END, f"\nAverage Atomic Mass: {stats['avg_atomic_mass']:.2f}\n")
-        
-        # Make text readonly
-        stats_text.configure(state='disabled')
+        # Add clear history button
+        ctk.CTkButton(
+            history_frame,
+            text="Clear History",
+            command=self.clear_history,
+            font=("Helvetica", 12)
+        ).pack(pady=10)
 
     def create_detail_labels(self):
-        """Create organized detail labels"""
+        """Create organized detail labels with modern styling"""
         self.detail_labels = {}
         details = [
-            ("Basic Info", ["Name", "Symbol", "Atomic Number"]),
+            ("Basic Information", ["Name", "Symbol", "Atomic Number"]),
             ("Physical Properties", ["Atomic Mass", "Block"]),
             ("Structure", ["Group", "Period", "Electron Configuration"])
         ]
         
-        row = 0
         for section, fields in details:
             # Section header
-            ttk.Label(self.results_frame,
-                     text=section,
-                     style="Subtitle.TLabel").grid(row=row,
-                                                 column=0,
-                                                 columnspan=2,
-                                                 sticky="w",
-                                                 pady=(10,5))
-            row += 1
+            frame = ctk.CTkFrame(self.info_frame)
+            frame.pack(fill="x", pady=10)
+            
+            ctk.CTkLabel(
+                frame,
+                text=section,
+                font=("Helvetica", 16, "bold")
+            ).pack(anchor="w", padx=10, pady=5)
             
             # Fields
             for field in fields:
-                ttk.Label(self.results_frame,
-                         text=f"{field}:",
-                         style="Header.TLabel").grid(row=row,
-                                                   column=0,
-                                                   sticky="w",
-                                                   padx=5,
-                                                   pady=2)
-                self.detail_labels[field] = ttk.Label(self.results_frame,
-                                                    text="",
-                                                    style="Element.TLabel")
-                self.detail_labels[field].grid(row=row,
-                                             column=1,
-                                             sticky="w",
-                                             padx=5,
-                                             pady=2)
-                row += 1
+                field_frame = ctk.CTkFrame(frame)
+                field_frame.pack(fill="x", padx=20)
+                
+                ctk.CTkLabel(
+                    field_frame,
+                    text=f"{field}:",
+                    font=("Helvetica", 12)
+                ).pack(side="left", padx=5)
+                
+                self.detail_labels[field] = ctk.CTkLabel(
+                    field_frame,
+                    text="",
+                    font=("Helvetica", 12, "bold")
+                )
+                self.detail_labels[field].pack(side="left", padx=5)
 
     def display_element(self, element: Optional[Dict]):
-        """Display element details and update history"""
+        """Display element details with modern styling"""
         if not element:
             messagebox.showinfo("Not Found", "Element not found!")
             return
@@ -229,39 +258,40 @@ class ModernPeriodicTableGUI:
         # Update labels
         for key, label in self.detail_labels.items():
             value = element.get(key.lower().replace(" ", "_"), "")
-            label.config(text=str(value))
+            label.configure(text=str(value))
+        
+        # Switch to info tab
+        self.tabview.set("Element Info")
         
         # Add to history
-        self.add_to_history("Display", f"Element: {element['symbol']}", "Success")
+        self.add_to_history(f"Viewed {element['symbol']}")
 
-    def add_to_history(self, search_type: str, query: str, result: str):
-        """Add search to history"""
+    def add_to_history(self, action: str):
+        """Add action to history with timestamp"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.history_tree.insert("", 0, values=(timestamp, search_type, query, result))
+        self.history_list.insert("1.0", f"{timestamp}: {action}\n")
         
-        # Keep history limited to last 10 searches
-        if len(self.history_tree.get_children()) > 10:
-            self.history_tree.delete(self.history_tree.get_children()[-1])
+    def clear_history(self):
+        """Clear search history"""
+        self.history_list.delete("1.0", tk.END)
 
     def search_by_number(self):
-        """Handle atomic number search"""
+        """Search element by atomic number"""
         try:
             number = int(self.atomic_number_var.get())
             element = self.db.get_element_by_number(number)
             self.display_element(element)
-            self.add_to_history("Atomic Number", str(number), 
-                              "Found" if element else "Not Found")
+            self.add_to_history(f"Searched atomic number: {number}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid atomic number!")
 
     def search_by_symbol(self):
-        """Handle symbol search"""
+        """Search element by symbol"""
         symbol = self.symbol_var.get().strip()
         if symbol:
             element = self.db.get_element_by_symbol(symbol)
             self.display_element(element)
-            self.add_to_history("Symbol", symbol, 
-                              "Found" if element else "Not Found")
+            self.add_to_history(f"Searched symbol: {symbol}")
         else:
             messagebox.showerror("Error", "Please enter an element symbol!")
 
@@ -269,7 +299,42 @@ class ModernPeriodicTableGUI:
         """Display elements in specified block"""
         elements = self.db.get_elements_by_block(block)
         self.show_elements_list(f"Elements in {block.upper()}-Block", elements)
-        self.add_to_history("Block", block, f"Found {len(elements)} elements")
+        self.add_to_history(f"Viewed {block}-block elements")
+
+    def show_elements_list(self, title: str, elements: List[Dict]):
+        """Show list of elements in a modern popup window"""
+        popup = ctk.CTkToplevel(self.root)
+        popup.title(title)
+        popup.geometry("400x600")
+
+        # Bring popup to front
+        popup.lift()  # Lifts the window to the top
+        popup.focus_force()  # Forces focus on the popup window
+        
+        # Create scrollable frame
+        frame = ctk.CTkScrollableFrame(popup)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Add elements
+        for element in elements:
+            element_frame = ctk.CTkFrame(frame)
+            element_frame.pack(fill="x", pady=5)
+            
+            ctk.CTkLabel(
+                element_frame,
+                text=f"{element['symbol']} - {element['name']}",
+                font=("Helvetica", 14, "bold")
+            ).pack(pady=5)
+            
+            ctk.CTkLabel(
+                element_frame,
+                text=f"Atomic Number: {element['atomic_number']}",
+                font=("Helvetica", 12)
+            ).pack()
+
+    def run(self):
+        """Start the application"""
+        self.root.mainloop()
 
 class DatabaseManager:
     def __init__(self):
@@ -405,9 +470,8 @@ class DatabaseManager:
             pass
 
 def main():
-    root = ThemedTk(theme="arc")  # You can choose different themes: 'arc', 'equilux', etc.
-    app = ModernPeriodicTableGUI(root)
-    root.mainloop()
+    app = PeriodicTableGUI()
+    app.run()
 
 if __name__ == "__main__":
     main()
